@@ -50,16 +50,7 @@ Describe the system components and how they connect. Follow the conventions in t
 - **File structure**: Follow the canonical layout in `file-architecture.md` (in the srs-creator skill directory). Show the full project tree, expanding with project-specific files as needed
 
 ### 3. Database Schema
-Schema is defined using **Drizzle ORM** table declarations (not raw SQL). For each table:
-- Table name as a sub-heading
-- One-sentence description of what it stores
-- A table with columns: **Column**, **Type**, **Notes**
-- Mark PKs and FKs explicitly
-- Include status enums inline (e.g., `parsing` → `specialists` → `complete`)
-- Use Postgres-native types via Drizzle helpers: `uuid`, `text`, `jsonb`, `timestamp`, `pgEnum`, etc.
-- Show a Drizzle schema snippet for each table so the engineer can copy it directly into `src/db/schema.ts`
-
-Derive tables directly from the PRD's entities. Every noun that gets created, stored, or referenced should map to a table or a column.
+Reference `db-reference.md` (in this skill's directory) for the format. Derive tables directly from the PRD's entities — every noun that gets created, stored, or referenced should map to a table or a column. If the schema has many tables, extract it into a separate `docs/db.md` file and reference it from the SRS. Otherwise, keep it inline in `docs/srs.md`.
 
 ### 4. Type Safety
 The Drizzle schema is the **single source of truth** for all types. Never manually redefine types that Drizzle already provides. Follow these rules:
