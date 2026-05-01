@@ -42,3 +42,10 @@ There is no right or wrong way to use this, but here are some guidelines I'd rec
 | `figma` | Connects to Figma for design-to-code workflows | Global |
 | `context7` | Fetches up-to-date library and framework documentation | Global |
 | `Neon` | Manages Neon Postgres projects, branches, schemas, and queries | Global |
+
+## Helpful Resources
+
+| Resource | Description |
+|----------|-------------|
+| [skills.sh](https://skills.sh) | Directory of community-built Claude Code skills |
+| [mcpmarket.com](https://mcpmarket.com) | Marketplace for discovering and installing MCP servers |
