@@ -9,9 +9,9 @@ Write SRS documents that translate a PRD into a complete technical blueprint. Th
 
 ## Prerequisites
 
-Before writing, you MUST read the project's PRD (`docs/PRD.md`). The SRS is derived from it. If no PRD exists, tell the user to create one first (or use the `prd-creator` skill).
+Before writing, you MUST read the project's PRD (`docs/prd.md`). The SRS is derived from it. If no PRD exists, tell the user to create one first (or use the `prd-creator` skill).
 
-Also ask the user about any tech stack preferences or constraints they have. If they have none, make opinionated choices and justify them.
+Also read the project's `README.md` to confirm the canonical tech stack. The SRS MUST use the kp-stack defaults listed below unless there is a strong, documented reason to deviate.
 
 ## Process
 
@@ -27,65 +27,58 @@ Also ask the user about any tech stack preferences or constraints they have. If 
 Write the document in this exact order. 
 
 ### 1. Tech Stack
-A table with two columns: **Layer** and **Technology**. Cover every layer of the system:
-- Frontend (framework, UI library, styling)
-- Backend API (language, framework)
-- Database
-- Any specialized frameworks (agent frameworks, ML pipelines, etc.)
-- External services (PDF parsing, search APIs, etc.)
-- Containerization / deployment
+A table with two columns: **Layer** and **Technology**. The following are **non-negotiable defaults** from the kp-stack. Always start from these and only add to them:
 
-Be specific — include the actual library names, not just categories. For example: "React + Vite + shadcn/ui + Tailwind CSS", not "JavaScript frontend."
+| Layer | Technology |
+|-------|-----------|
+| Framework | Next.js (App Router) with TypeScript |
+| UI | shadcn/ui + Radix primitives + Tailwind CSS |
+| Client State / Data Fetching | TanStack Query |
+| ORM | Drizzle ORM |
+| Database | Neon (serverless Postgres) |
+| AI / Agents | LangChain (TypeScript) |
+
+Add rows for any **project-specific** layers the PRD requires (file storage, search, email, payments, etc.), but never replace a default. If the PRD demands something a default doesn't cover (e.g., real-time via WebSockets), add it alongside the defaults rather than swapping them out.
 
 ### 2. Architecture
-Describe the system components and how they connect. Cover:
-- The frontend: what framework serves it, how it communicates with the backend, and any client-side state management
-- The backend: its internal layering (routes, services, data access), how requests flow through these layers, and where business logic lives
-- External dependencies: database, third-party APIs, file storage, message brokers
-- Communication protocols between layers (REST, SSE, WebSocket, etc.) and why each was chosen
-- How async/background work is triggered and managed (e.g., pipeline kicked off by an API call, runs in a background thread, publishes status via Redis)
-- Data flow: trace a typical request end-to-end from user action through frontend → API → backend processing → database → response
+Describe the system components and how they connect. The architecture MUST follow Next.js App Router conventions:
+- **Frontend**: Next.js App Router with React Server Components by default. Client components (`"use client"`) only when interactivity is needed. TanStack Query for client-side server state (caching, mutations, optimistic updates). shadcn/ui for all UI primitives.
+- **Backend services**: Default to **queries** and **actions** over API Route Handlers. Only create a Route Handler (`app/api/`) when you need an externally callable endpoint (webhooks, third-party integrations, streaming SSE).
+  - **Queries** (`src/queries/`) — server-side read functions. Each file exports async functions that use Drizzle to fetch data. Called directly from Server Components or via TanStack Query.
+  - **Actions** (`src/actions/`) — Server Actions for mutations. Each file uses `"use server"` and exports async functions that write/update/delete via Drizzle. Called from client components via form actions or `useMutation`.
+  - Drizzle ORM for all database access — no raw SQL unless Drizzle can't express the query.
+- **Database**: Neon serverless Postgres via Drizzle. Schema defined in `src/db/schema.ts`. Migrations via `drizzle-kit`.
+- **AI layer**: LangChain (TypeScript) for any LLM orchestration, chains, agents, or tool use. Prefer LangChain abstractions over raw API calls.
+- Communication: Server Actions for mutations, direct query calls for reads, Route Handlers only when an HTTP endpoint is required. Server-Sent Events via Route Handlers for streaming LLM responses.
+- Data flow: trace a typical request end-to-end from user action → React component → query/action (or TanStack Query → action) → Drizzle → Neon → response.
+- **File structure**: Follow the canonical layout in `file-architecture.md` (in this skill's directory). Show the full project tree in the SRS, expanding with project-specific files as needed.
 
 ### 3. Database Schema
-For each table/collection:
+Schema is defined using **Drizzle ORM** table declarations (not raw SQL). For each table:
 - Table name as a sub-heading
 - One-sentence description of what it stores
 - A table with columns: **Column**, **Type**, **Notes**
 - Mark PKs and FKs explicitly
 - Include status enums inline (e.g., `parsing` → `specialists` → `complete`)
-- Use appropriate types (UUID, TEXT, JSONB, etc.)
+- Use Postgres-native types via Drizzle helpers: `uuid`, `text`, `jsonb`, `timestamp`, `pgEnum`, etc.
+- Show a Drizzle schema snippet for each table so the engineer can copy it directly into `src/db/schema.ts`
 
 Derive tables directly from the PRD's entities. Every noun that gets created, stored, or referenced should map to a table or a column.
 
-### 4. Application Structure
-A file tree showing every directory and file in the project. Use this format:
-```
-project-name/
-├── docker-compose.yml
-├── backend/
-│   ├── app/
-│   │   ├── __init__.py
-│   │   ├── routes/
-│   │   │   └── upload.py          # POST /api/upload — description
-│   │   └── ...
-└── frontend/
-    └── src/
-        └── ...
-```
-
-Rules:
-- Maintain separation of concerns — break code into folders and separate files when opportune. Constants, sub-components, utility modules, config, and types should each live in their own files rather than being inlined into larger files. Prefer many small, focused files over few large ones.
-- Include inline comments (`# description`) for non-obvious files
-- Group by feature/domain, not by type, where possible
-- Show the full tree — don't use "..." unless a directory contains only standard boilerplate
-- Frontend pages should map 1:1 to the PRD's core features
-- Each page gets its own `components/` subdirectory for page-specific components
+### 4. Type Safety
+The Drizzle schema is the **single source of truth** for all types. Never manually redefine types that Drizzle already provides. Follow these rules:
+- Use `typeof table.$inferSelect` and `typeof table.$inferInsert` to derive row types from Drizzle tables. Export these from `src/db/schema.ts`.
+- Extend inferred types with `&` or `Omit`/`Pick` when you need subsets or additions — don't duplicate fields into a hand-written type.
+- Use `type`, not `interface`. Interfaces encourage declaration merging and inheritance patterns that add unnecessary complexity.
+- API request/response shapes should be derived from or composed of the Drizzle-inferred types so the contract between client and server stays in sync with the schema automatically.
+- For frontend-only concerns (form state, UI flags), create minimal `type` aliases in the relevant component file or `src/types/` — but never re-declare database columns.
 
 ### 5. API Routes
-A table with columns: **Method**, **Path**, **Description**. Cover every endpoint the frontend needs. Prefix all routes consistently (e.g., `/api/`). Include:
+A table with columns: **Method**, **Path**, **Description**. All routes are Next.js Route Handlers under `src/app/api/`. Include:
 - CRUD endpoints for each entity
-- Any streaming/SSE endpoints
+- Any streaming/SSE endpoints (for LLM responses, use SSE via `ReadableStream`)
 - File upload endpoints
+- Note which operations should use Server Actions instead of Route Handlers (simple form mutations, optimistic updates)
 
 ### 6. Pipelines
 If the application has major pipelines (data processing, AI agent workflows, ETL, multi-step async processes, etc.), describe each one here:
@@ -106,24 +99,22 @@ Do NOT strive for full coverage. Instead, identify the critical paths and write 
 
 Skip tests for: boilerplate CRUD, UI layout, straightforward getters/setters, and anything where a bug would be immediately obvious. Every test should justify its existence — if you can't explain what breakage it catches, don't write it.
 
-Use the `python-testing-patterns` skill when implementing tests.
+Use Vitest for unit/integration tests and Playwright for E2E tests.
 
 ### 8. Environment & Config
-List all environment variables the application requires. For each variable:
-- Name (e.g., `DATABASE_URL`, `ANTHROPIC_API_KEY`)
+List all environment variables the application requires. Always include these kp-stack baseline variables:
+
+| Variable | Purpose | Required |
+|----------|---------|----------|
+| `DATABASE_URL` | Neon Postgres connection string (used by Drizzle) | Yes |
+| `NEXT_PUBLIC_APP_URL` | Public app URL for client-side use | Yes |
+
+Add any project-specific variables (API keys for LLM providers, external services, etc.). For each variable:
+- Name
 - What it's for
 - Whether it's required or optional
 - A sensible default if one exists
 
-Group by service if the app has multiple (backend, frontend, database, etc.).
-
-## Writing Guidelines
-
-- **Show code patterns**: When describing chains, state schemas, or API structures, include code snippets showing the actual pattern to follow (not full implementations).
-- **Be specific about libraries**: Don't say "an ORM" — say "SQLAlchemy with Flask-Migrate for migrations."
-- **Match the PRD exactly**: Every core feature in the PRD should map to frontend pages + API routes + data models here. Nothing should be invented that the PRD doesn't call for.
-- **Keep schema lean**: Only model what the PRD requires. No "created_at/updated_at on everything" unless there's a stated need.
-
 ## Output
 
-Save the SRS to `docs/SRS.md`. After writing, update `CLAUDE.md` if a new doc entry is needed.
+Save the SRS to `docs/srs.md`. After writing, update `CLAUDE.md` if a new doc entry is needed.

@@ -18,7 +18,7 @@ Before writing, gather the following from the user (ask clarifying questions if 
 
 ## PRD Structure
 
-Write the document in this exact order. Use `docs/PRD.md` in this repo as a reference for tone, depth, and formatting.
+Write the document in this exact order. Use `docs/prd.md` in this repo as a reference for tone, depth, and formatting.
 
 ### 1. Overview
 A single paragraph explaining what the product is and its core value proposition. Be specific — name the users, the domain, and the key differentiator. Avoid vague language like "a tool that helps with X." Instead: "An AI-powered due diligence tool for [org] that [specific mechanism] to deliver [specific outcome]."
@@ -77,4 +77,4 @@ Bulleted list of things the product explicitly does NOT do in this version. This
 
 ## Output
 
-Save the PRD to `docs/PRD.md`. After writing, update `CLAUDE.md` if a new doc entry is needed.
+Save the PRD to `docs/prd.md`. After writing, update `CLAUDE.md` if a new doc entry is needed.
