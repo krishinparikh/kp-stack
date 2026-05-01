@@ -41,17 +41,13 @@ A table with two columns: **Layer** and **Technology**. The following are **non-
 Add rows for any **project-specific** layers the PRD requires (file storage, search, email, payments, etc.), but never replace a default. If the PRD demands something a default doesn't cover (e.g., real-time via WebSockets), add it alongside the defaults rather than swapping them out.
 
 ### 2. Architecture
-Describe the system components and how they connect. The architecture MUST follow Next.js App Router conventions:
-- **Frontend**: Next.js App Router with React Server Components by default. Client components (`"use client"`) only when interactivity is needed. TanStack Query for client-side server state (caching, mutations, optimistic updates). shadcn/ui for all UI primitives.
-- **Backend services**: Default to **queries** and **actions** over API Route Handlers. Only create a Route Handler (`app/api/`) when you need an externally callable endpoint (webhooks, third-party integrations, streaming SSE).
-  - **Queries** (`src/queries/`) — server-side read functions. Each file exports async functions that use Drizzle to fetch data. Called directly from Server Components or via TanStack Query.
-  - **Actions** (`src/actions/`) — Server Actions for mutations. Each file uses `"use server"` and exports async functions that write/update/delete via Drizzle. Called from client components via form actions or `useMutation`.
-  - Drizzle ORM for all database access — no raw SQL unless Drizzle can't express the query.
-- **Database**: Neon serverless Postgres via Drizzle. Schema defined in `src/db/schema.ts`. Migrations via `drizzle-kit`.
-- **AI layer**: LangChain (TypeScript) for any LLM orchestration, chains, agents, or tool use. Prefer LangChain abstractions over raw API calls.
-- Communication: Server Actions for mutations, direct query calls for reads, Route Handlers only when an HTTP endpoint is required. Server-Sent Events via Route Handlers for streaming LLM responses.
-- Data flow: trace a typical request end-to-end from user action → React component → query/action (or TanStack Query → action) → Drizzle → Neon → response.
-- **File structure**: Follow the canonical layout in `file-architecture.md` (in this skill's directory). Show the full project tree in the SRS, expanding with project-specific files as needed.
+Describe the system components and how they connect. Follow the conventions in the `frontend-eng` and `backend-eng` skills for detailed rules. The SRS architecture section should cover:
+- **Frontend**: Next.js App Router, RSC by default, TanStack Query, shadcn/ui
+- **Backend**: Queries for reads, Actions for mutations, Route Handlers only when an HTTP endpoint is needed
+- **Database**: Neon serverless Postgres via Drizzle. Schema in `src/db/schema.ts`, migrations via `drizzle-kit`
+- **AI layer**: LangChain (TypeScript) for LLM orchestration. SSE via Route Handlers for streaming
+- **Data flow**: Trace a typical request end-to-end from user action through to database and back
+- **File structure**: Follow the canonical layout in `file-architecture.md` (in the srs-creator skill directory). Show the full project tree, expanding with project-specific files as needed
 
 ### 3. Database Schema
 Schema is defined using **Drizzle ORM** table declarations (not raw SQL). For each table:

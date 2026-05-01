@@ -1,6 +1,13 @@
 # kp-stack
 An opinionated boilerplate tech stack, including Claude Code infrastructure, for building AI-native full-stack web applications.
 
+## Recommended Usage
+There is no right or wrong way to use this, but here are some guidelines I'd recommend:
+
+- Write a PRD with `/prd-creator` and an SRS with `/srs-creator`
+- Iterate on these until satisfied, and only then start implementing code
+- Add/update/remove skills/MCPs as fit for your project
+
 ## Tech Stack
 
 | Technology | Description | Rationale |
@@ -19,7 +26,8 @@ An opinionated boilerplate tech stack, including Claude Code infrastructure, for
 |-------|-------------|
 | `prd-creator` | Guides structured product thinking from problem through solution to produce a PRD |
 | `srs-creator` | Translates a PRD into a complete technical blueprint (SRS) |
-| `frontend-eng` | Enforces frontend conventions when writing any frontend code |
+| `frontend-eng` | Enforces frontend conventions — RSC by default, client component boundaries, shadcn/ui |
+| `backend-eng` | Enforces backend conventions — queries, actions, route handlers, Drizzle, type safety |
 | `neon-drizzle` | Provisions a Neon database and scaffolds a full Drizzle ORM setup |
 | `mermaid-diagrams` | Creates software diagrams (sequence, ER, flowchart, C4, etc.) using Mermaid syntax |
 | `claudemd-creator` | Generates or updates the project's CLAUDE.md file |
